@@ -1,37 +1,36 @@
 import streamlit as st
-import pydub
-import speech_recognition as sr
+import sounddevice as sd
 import numpy as np
-import os
-from pydub import AudioSegment
-from pydub.playback import play
+import wave
+import time
 
-# Ensure the "audio" folder exists
-os.makedirs("audio", exist_ok=True)
+st.title("🎙️ Streamlit Voice Recorder")
 
-st.title("🎙️ Streamlit Audio Recorder (Using pydub)")
+# Recording parameters
+sample_rate = 44100  # Hz
+channels = 1
+duration = st.slider("Select recording duration (seconds):", 1, 10, 3)
 
-duration = st.slider("Select recording duration (seconds)", 1, 10, 5)
+# Function to record audio
+def record_audio(duration, sample_rate, channels):
+    st.write("Recording... 🎤")
+    recording = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=channels, dtype=np.int16)
+    sd.wait()
+    st.write("Recording finished! ✅")
+    return recording
 
-if st.button("🎤 Start Recording"):
-    st.write("Recording... Speak now!")
+# Button to start recording
+if st.button("Start Recording"):
+    audio_data = record_audio(duration, sample_rate, channels)
 
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        audio_data = recognizer.record(source, duration=duration)
+    # Save as a .wav file
+    file_name = f"recording_{int(time.time())}.wav"
+    with wave.open(file_name, 'wb') as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(audio_data.tobytes())
 
-    st.success("Recording finished!")
+    st.success(f"Recording saved as `{file_name}` 🎧")
+    st.audio(file_name, format="audio/wav")
 
-    # Convert SpeechRecognition audio to WAV
-    file_path = "audio/answer.wav"
-    with open(file_path, "wb") as f:
-        f.write(audio_data.get_wav_data())
-
-    st.success(f"Audio saved as `{file_path}`")
-
-    # Play the recorded audio
-    st.audio(file_path, format="audio/wav")
-
-    # Provide download option
-    with open(file_path, "rb") as audio_file:
-        st.download_button("⬇️ Download Recording", audio_file, file_name="answer.wav", mime="audio/wav")

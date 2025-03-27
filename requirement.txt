@@ -1,4 +1,4 @@
 streamlit
-pydub
-speechrecognition
+sounddevice
 numpy
+wave
