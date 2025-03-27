@@ -1,36 +1,50 @@
 import streamlit as st
-import sounddevice as sd
-import numpy as np
+import pyaudio
 import wave
-import time
 
-st.title("🎙️ Streamlit Voice Recorder")
+# Audio Recording Parameters
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RATE = 44100
+CHUNK = 1024
+RECORD_SECONDS = 5
+OUTPUT_FILENAME = "recorded_audio.wav"
 
-# Recording parameters
-sample_rate = 44100  # Hz
-channels = 1
-duration = st.slider("Select recording duration (seconds):", 1, 10, 3)
+def record_audio():
+    audio = pyaudio.PyAudio()
+    
+    stream = audio.open(format=FORMAT, channels=CHANNELS,
+                        rate=RATE, input=True,
+                        frames_per_buffer=CHUNK)
 
-# Function to record audio
-def record_audio(duration, sample_rate, channels):
-    st.write("Recording... 🎤")
-    recording = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=channels, dtype=np.int16)
-    sd.wait()
-    st.write("Recording finished! ✅")
-    return recording
+    st.write("🎤 **Recording... Speak Now!**")
+    
+    frames = []
+    for _ in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+        data = stream.read(CHUNK)
+        frames.append(data)
+    
+    st.write("✅ **Recording Finished!**")
+    
+    # Stop and close the stream
+    stream.stop_stream()
+    stream.close()
+    audio.terminate()
 
-# Button to start recording
+    # Save audio file
+    with wave.open(OUTPUT_FILENAME, "wb") as wf:
+        wf.setnchannels(CHANNELS)
+        wf.setsampwidth(audio.get_sample_size(FORMAT))
+        wf.setframerate(RATE)
+        wf.writeframes(b''.join(frames))
+    
+    return OUTPUT_FILENAME
+
+st.title("🎙️ Streamlit Audio Recorder")
+
 if st.button("Start Recording"):
-    audio_data = record_audio(duration, sample_rate, channels)
+    audio_file = record_audio()
+    st.audio(audio_file, format="audio/wav", start_time=0)
 
-    # Save as a .wav file
-    file_name = f"recording_{int(time.time())}.wav"
-    with wave.open(file_name, 'wb') as wf:
-        wf.setnchannels(channels)
-        wf.setsampwidth(2)
-        wf.setframerate(sample_rate)
-        wf.writeframes(audio_data.tobytes())
-
-    st.success(f"Recording saved as `{file_name}` 🎧")
-    st.audio(file_name, format="audio/wav")
-
+    with open(audio_file, "rb") as f:
+        st.download_button(label="📥 Download Recording", data=f, file_name="recorded_audio.wav")
