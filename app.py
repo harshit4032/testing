@@ -1,26 +1,24 @@
 import streamlit as st
-import sounddevice as sd
-import numpy as np
-from scipy.io.wavfile import write
+import os
+import time
+from pydub import AudioSegment
+from pydub.playback import play
 
-st.title("🎙️ Streamlit Audio Recorder")
+st.title("🎙️ Cloud-Compatible Audio Recorder")
 
-# Define audio settings
-SAMPLE_RATE = 44100  # CD-quality audio
-DURATION = 5  # Record for 5 seconds
+DURATION = 5  # Duration in seconds
+OUTPUT_FILE = "recorded_audio.wav"
 
+# Function to record audio using ffmpeg
 def record_audio():
     st.write("🎤 Recording...")
-    audio_data = sd.rec(int(SAMPLE_RATE * DURATION), samplerate=SAMPLE_RATE, channels=2, dtype=np.int16)
-    sd.wait()  # Wait until recording is finished
+    
+    os.system(f"ffmpeg -f alsa -t {DURATION} -i default {OUTPUT_FILE}")  # Uses ALSA (Linux default)
+    
     st.write("✅ Recording complete!")
+    return OUTPUT_FILE
 
-    # Save the recorded audio
-    filename = "recorded_audio.wav"
-    write(filename, SAMPLE_RATE, audio_data)
-    return filename
-
-# Start recording when button is clicked
+# Button to start recording
 if st.button("Start Recording"):
     audio_file = record_audio()
     st.audio(audio_file, format="audio/wav")
