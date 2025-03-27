@@ -2,3 +2,8 @@ streamlit
 sounddevice
 scipy
 numpy
+pydub
+ffmpeg
+os-sys
+io
+wave
