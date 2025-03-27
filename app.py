@@ -1,30 +1,55 @@
 import streamlit as st
-import sounddevice as sd
-import numpy as np
-from scipy.io.wavfile import write
 
-st.title("🎙️ Streamlit Audio Recorder")
+st.title("🎙️ Cloud-Compatible Audio Recorder")
 
-# Define audio settings
-SAMPLE_RATE = 44100  # CD-quality audio
-DURATION = 5  # Record for 5 seconds
+# JavaScript to record, play, and download audio
+audio_recorder = """
+    <script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let audioBlob;
 
-def record_audio():
-    st.write("🎤 Recording...")
-    audio_data = sd.rec(int(SAMPLE_RATE * DURATION), samplerate=SAMPLE_RATE, channels=1, dtype=np.int16)
-    sd.wait()  # Wait until recording is finished
-    st.write("✅ Recording complete!")
+    function startRecording() {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+            mediaRecorder.onstop = () => {
+                audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(audioBlob);
 
-    # Save the recorded audio
-    filename = "recorded_audio.wav"
-    write(filename, SAMPLE_RATE, audio_data)
-    return filename
+                // Play audio
+                const audioPlayer = document.getElementById("audio-player");
+                audioPlayer.src = audioUrl;
+                audioPlayer.style.display = "block";
 
-# Start recording when button is clicked
-if st.button("Start Recording"):
-    audio_file = record_audio()
-    st.audio(audio_file, format="audio/wav")
+                // Download link
+                const downloadLink = document.getElementById("download");
+                downloadLink.href = audioUrl;
+                downloadLink.download = "answer.wav";  // ✅ Save as answer.wav
+                downloadLink.style.display = "block";
+            };
+            mediaRecorder.start();
+            document.getElementById("status").innerText = "Recording...";
+        });
+    }
 
-    # Provide a download option
-    with open(audio_file, "rb") as f:
-        st.download_button(label="📥 Download Recording", data=f, file_name="recorded_audio.wav")
+    function stopRecording() {
+        mediaRecorder.stop();
+        document.getElementById("status").innerText = "Recording stopped!";
+    }
+    </script>
+
+    <button onclick="startRecording()">🎤 Start Recording</button>
+    <button onclick="stopRecording()">⏹ Stop Recording</button>
+    <p id="status"></p>
+    <audio id="audio-player" controls style="display: none;"></audio>
+    <br>
+    <a id="download" style="display: none;">📥 Download answer.wav</a>
+"""
+
+# Embed JavaScript into Streamlit
+st.components.v1.html(audio_recorder, height=300)
