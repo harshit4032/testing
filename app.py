@@ -1,28 +1,31 @@
 import streamlit as st
-import sounddevice as sd
+import pydub
+import speech_recognition as sr
 import numpy as np
-import scipy.io.wavfile as wav
 import os
+from pydub import AudioSegment
+from pydub.playback import play
 
 # Ensure the "audio" folder exists
 os.makedirs("audio", exist_ok=True)
 
-st.title("🎙️ Streamlit Audio Recorder")
+st.title("🎙️ Streamlit Audio Recorder (Using pydub)")
 
-# User-defined recording duration
 duration = st.slider("Select recording duration (seconds)", 1, 10, 5)
 
 if st.button("🎤 Start Recording"):
-    samplerate = 44100  # Standard CD-quality sample rate
     st.write("Recording... Speak now!")
 
-    audio_data = sd.rec(int(samplerate * duration), samplerate=samplerate, channels=1, dtype=np.int16)
-    sd.wait()  # Wait for recording to finish
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        audio_data = recognizer.record(source, duration=duration)
+
     st.success("Recording finished!")
 
-    # Save the audio file
+    # Convert SpeechRecognition audio to WAV
     file_path = "audio/answer.wav"
-    wav.write(file_path, samplerate, audio_data)
+    with open(file_path, "wb") as f:
+        f.write(audio_data.get_wav_data())
 
     st.success(f"Audio saved as `{file_path}`")
 
